@@ -5,7 +5,7 @@ import User from "../models/User";
 
 dotenv.config();
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 
 // ✅ রেজিস্ট্রেশন রুট
 router.post("/register", async (req: Request, res: Response) => {
