@@ -1,63 +1,39 @@
-// src/models/User.ts
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcrypt";
+import { IUser } from "../interfaces/IUser";
 
-// ইন্টারফেস
-export interface IUser {
-  name: string;
-  email: string;
-  username: string;
-  password: string;
-  role?: string;
-}
-
-// মডেল ইন্টারফেস
+// ডকুমেন্ট টাইপ
 export interface IUserDocument extends IUser, Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-// স্কিমা
+// স্কিমা ডেফিনিশন
 const UserSchema: Schema<IUserDocument> = new Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, default: "employee" },
   },
   { timestamps: true }
 );
 
-// ✅ পাসওয়ার্ড হ্যাশ করার জন্য pre-save hook
+// ✅ পাসওয়ার্ড সেভ করার আগে হ্যাশ করে
 UserSchema.pre<IUserDocument>("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  // ✅ লগ দেখার জন্য
-  console.log("🛠️ পাসওয়ার্ড হ্যাশ করা হচ্ছে:", this.password);
+  console.log("পাসওয়ার্ড হ্যাশ করা হচ্ছে..."); // এখানে লগ দিয়ে চেক করো
+  if (!this.isModified("password")) return next(); // আগেই হ্যাশ করা থাকলে স্কিপ করে
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  // ✅ হ্যাশ করার পরও দেখতে চাইলে:
-  console.log("✅ হ্যাশ করা পাসওয়ার্ড:", this.password);
+  console.log("হ্যাশ পাসওয়ার্ড: ", this.password); // হ্যাশ করা পাসওয়ার্ড দেখতে
   next();
 });
 
-// ✅ findOneAndUpdate এর জন্যও হ্যাশিং
-UserSchema.pre("findOneAndUpdate", async function (next) {
-  const update = this.getUpdate() as any;
-  if (update.password) {
-    const salt = await bcrypt.genSalt(10);
-    update.password = await bcrypt.hash(update.password, salt);
-    this.setUpdate(update);
-  }
-  next();
-});
-
-// ✅ পাসওয়ার্ড যাচাই করার method
+// ✅ পাসওয়ার্ড যাচাই করার জন্য কাস্টম মেথড
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// ✅ মডেল এক্সপোর্ট
 export default mongoose.models.User ||
   mongoose.model<IUserDocument>("User", UserSchema);
