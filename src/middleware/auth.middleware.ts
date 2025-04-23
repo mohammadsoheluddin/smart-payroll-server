@@ -1,29 +1,24 @@
-// src/middleware/auth.middleware.ts
+import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import dotenv from "dotenv";
 
-dotenv.config();
-const secret = process.env.JWT_SECRET as string;
-
+// Token যাচাইয়ের ফাংশন
 export const authenticateToken = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+) => {
+  // হেডারে টোকেন চেক করা
+  const token = req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    res.status(401).json({ message: "Access token missing" });
-    return;
+    return res.status(401).send("Access Denied. No Token Provided.");
   }
 
   try {
-    const decoded = jwt.verify(token, secret) as JwtPayload;
-    req.user = decoded; // `req.user` টাইপ এখন JwtPayload বা string হতে পারে
-    next();
-  } catch (err) {
-    res.status(403).json({ message: "Invalid or expired token" });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    req.user = decoded; // টোকেন ডিকোড করা তথ্য req.user তে সংরক্ষণ
+    next(); // পরবর্তী রাউট হ্যান্ডলার কল
+  } catch (error) {
+    return res.status(400).send("Invalid Token.");
   }
 };
